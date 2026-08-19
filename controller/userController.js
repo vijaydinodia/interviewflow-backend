@@ -2,8 +2,7 @@ const userService = require("../services/userService");
 
 exports.createUser = async (req, res) => {
   try {
-    console.log(req.body);
-    let { username, email, password, firstName, lastName, fullName, role } = req.body;
+    let { username, email, password, firstName, lastName, fullName, role } = req.body || {};
 
     if (!email || !password) {
       return res.status(400).json({
@@ -23,13 +22,24 @@ exports.createUser = async (req, res) => {
       username = `${emailPrefix}_${Math.floor(1000 + Math.random() * 9000)}`;
     }
 
+    let targetRole = role;
+    if (targetRole === "company") {
+      targetRole = "admin";
+    }
+
     const userData = {
       username,
       email,
       password,
       firstName: firstName || username,
       lastName: lastName || "",
-      role: role || "candidate",
+      fullName: fullName || "",
+      role: targetRole || "candidate",
+      // Extra fields for role-specific tables
+      companyName: req.body.companyName || fullName || firstName || null,
+      title: req.body.title || null,
+      department: req.body.department || null,
+      currentRole: req.body.currentRole || null,
     };
 
     const result = await userService.createUser(userData);
@@ -70,7 +80,7 @@ exports.createUser = async (req, res) => {
 
 exports.login = async (req, res) => {
   try {
-    const { email, password } = req.body;
+    const { email, password } = req.body || {};
 
     if (!email || !password) {
       return res.status(400).json({
@@ -171,6 +181,94 @@ exports.resetPassword = async (req, res) => {
     });
   }
 };
+
+// POST /user/send-test-email — Test Brevo SMTP connection
+exports.sendTestEmail = async (req, res) => {
+  try {
+    const { to } = req.body;
+    if (!to) {
+      return res.status(400).json({
+        success: false,
+        message: "Recipient email 'to' is required.",
+      });
+    }
+
+    const { sendEmail } = require("../services/emailService");
+    const result = await sendEmail({
+      to,
+      subject: "Test Email from InterviewFlow (Brevo SMTP) 🚀",
+      text: "Hello! This is a test email sent from InterviewFlow using Brevo SMTP.",
+      html: `
+        <div style="font-family: Arial, sans-serif; padding: 20px; background-color: #0B151E; color: white; border-radius: 12px;">
+          <h2 style="color: #38BDF8;">InterviewFlow — Brevo Email Test ✓</h2>
+          <p style="color: #CBD5E1;">Your Brevo SMTP configuration is working perfectly!</p>
+          <p style="color: #94A3B8; font-size: 12px;">Sent at: ${new Date().toLocaleString()}</p>
+        </div>
+      `,
+    });
+
+    if (result.success) {
+      return res.status(200).json({
+        success: true,
+        message: `Test email sent successfully to ${to} via Brevo!`,
+        data: result,
+      });
+    } else {
+      return res.status(500).json({
+        success: false,
+        message: "Failed to send email via Brevo.",
+        error: result.error,
+      });
+    }
+  } catch (err) {
+    return res.status(500).json({
+      success: false,
+      message: err.message || "Server error sending email.",
+    });
+  }
+};
+
+// POST /user/send-interview-invite — Send 1-to-1 interview invitation email
+exports.sendInterviewInviteEmail = async (req, res) => {
+  try {
+    const { to, candidateName, roomCode, roleName, time } = req.body;
+    if (!to || !roomCode) {
+      return res.status(400).json({
+        success: false,
+        message: "Recipient 'to' and 'roomCode' are required.",
+      });
+    }
+
+    const { sendInterviewInvitationEmail } = require("../services/emailService");
+    const result = await sendInterviewInvitationEmail({
+      to,
+      candidateName,
+      roomCode,
+      roleName,
+      time,
+    });
+
+    if (result.success) {
+      return res.status(200).json({
+        success: true,
+        message: `Interview invitation sent to ${to}!`,
+        data: result,
+      });
+    } else {
+      return res.status(500).json({
+        success: false,
+        message: "Failed to send interview invitation email.",
+        error: result.error,
+      });
+    }
+  } catch (err) {
+    return res.status(500).json({
+      success: false,
+      message: err.message || "Server error sending invitation email.",
+    });
+  }
+};
+
 
 
 

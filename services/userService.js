@@ -1,7 +1,9 @@
 const userRepo = require("../repository/userRepo");
+const db = require("../models/index");
 const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
 const crypto = require("crypto");
+const { sendWelcomeEmail } = require("./emailService");
 const saltRounds = 10;
 
 exports.createUser = async (data) => {
@@ -16,7 +18,41 @@ exports.createUser = async (data) => {
     password: hash,
   };
 
-  return await userRepo.createUser(newData);
+  const user = await userRepo.createUser(newData);
+  const userId = user.userId;
+  const role = user.role;
+
+  try {
+    if (role === "admin") {
+      await db.companyModel.create({
+        userId: userId,
+        companyName: data.companyName || data.fullName || data.firstName || "My Company",
+        contactEmail: user.email,
+      });
+    } else if (role === "interviewer") {
+      await db.interviewerModel.create({
+        userId: userId,
+        title: data.title || null,
+        department: data.department || null,
+      });
+    } else if (role === "candidate") {
+      await db.candidateModel.create({
+        userId: userId,
+        currentRole: data.currentRole || null,
+        applicationStatus: "active",
+      });
+    }
+  } catch (profileErr) {
+    console.error("Warning: Could not create role profile row:", profileErr.message);
+  }
+
+  if (user && user.email) {
+    sendWelcomeEmail(user).catch((err) => {
+      console.error("Failed to send welcome email:", err.message);
+    });
+  }
+
+  return user;
 };
 
 exports.login = async (data) => {
@@ -57,7 +93,6 @@ exports.login = async (data) => {
     role: user.role,
   };
 
-  // Generate token using jsonwebtoken
   const token = jwt.sign(
     userPayload,
     process.env.JWT_SECRET,
@@ -158,5 +193,3 @@ exports.resetPassword = async ({ email, resetToken, token, newPassword, password
     message: "Password has been reset successfully. You can now log in with your new password.",
   };
 };
-
-

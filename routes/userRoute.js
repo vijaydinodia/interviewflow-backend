@@ -6,12 +6,23 @@ const {
   login,
   forgotPassword,
   resetPassword,
+  sendTestEmail,
+  sendInterviewInviteEmail,
 } = require("../controller/userController");
 
 router.post("/create-user", createUser);
+router.post("/create", createUser);
+router.post("/register", createUser);
+router.post("/signup", createUser);
+
 router.post("/login", login);
+router.post("/signin", login);
+
 router.post("/forgot-password", forgotPassword);
 router.post("/forget-password", forgotPassword);
 router.post("/reset-password", resetPassword);
 
-module.exports = router;
+router.post("/send-test-email", sendTestEmail);
+router.post("/send-interview-invite", sendInterviewInviteEmail);
+
+module.exports = router;
