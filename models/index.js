@@ -7,6 +7,9 @@ const companyModel = require("./comapanyModel")(sequelize);
 const interviewerModel = require("./interviewerModel")(sequelize);
 const candidateModel = require("./candidateModel")(sequelize);
 const interviewRequestModel = require("./interviewRequestModel")(sequelize);
+const meetingLinkModel = require("./meetingLinkModel")(sequelize);
+const codeExecutionModel = require("./codeExecutionModel")(sequelize);
+const bugReportModel = require("./bugReportModel")(sequelize);
 
 userModel.hasOne(superAdminModel, { foreignKey: "userId", as: "superAdminProfile" });
 superAdminModel.belongsTo(userModel, { foreignKey: "userId", as: "user" });
@@ -32,6 +35,15 @@ interviewRequestModel.belongsTo(userModel, { foreignKey: "candidateUserId", as: 
 userModel.hasMany(interviewRequestModel, { foreignKey: "interviewerUserId", as: "interviewerInterviewRequests" });
 interviewRequestModel.belongsTo(userModel, { foreignKey: "interviewerUserId", as: "interviewerUser" });
 
+interviewRequestModel.hasOne(meetingLinkModel, { foreignKey: "assignedRequestId", as: "meetingDetails" });
+meetingLinkModel.belongsTo(interviewRequestModel, { foreignKey: "assignedRequestId", as: "interviewRequest" });
+
+userModel.hasMany(codeExecutionModel, { foreignKey: "userId", as: "codeExecutions" });
+codeExecutionModel.belongsTo(userModel, { foreignKey: "userId", as: "user" });
+
+userModel.hasMany(bugReportModel, { foreignKey: "userId", as: "bugReports", constraints: false });
+bugReportModel.belongsTo(userModel, { foreignKey: "userId", as: "user", constraints: false });
+
 module.exports = {
   sequelize,
   userModel,
@@ -41,4 +53,7 @@ module.exports = {
   interviewerModel,
   candidateModel,
   interviewRequestModel,
+  meetingLinkModel,
+  codeExecutionModel,
+  bugReportModel,
 };

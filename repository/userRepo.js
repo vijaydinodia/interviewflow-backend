@@ -41,6 +41,7 @@ exports.getAllCompanies = async () => {
   });
 };
 
+
 exports.softDeleteUser = async (userId) => {
   const user = await db.userModel.findByPk(userId);
   if (!user) return null;
@@ -54,8 +55,58 @@ exports.hardDeleteUser = async (userId) => {
   return user;
 };
 
-exports.getAllUsers = async () => {
-  return await db.userModel.findAll({
+exports.restoreUser = async (userId) => {
+  const user = await db.userModel.findByPk(userId);
+  if (!user) return null;
+  return await user.update({ isActive: true });
+};
+
+exports.getAllUsers = async (options = {}) => {
+  const { search, role, status, sortBy = "createdAt", sortOrder = "DESC", page, limit } = options;
+  const Sequelize = require("sequelize");
+  const Op = Sequelize.Op;
+
+  const where = {};
+
+  // 1. Role filter
+  if (role && role !== "all" && role !== "all_users") {
+    if (role === "companies" || role === "company" || role === "admin") {
+      where.role = { [Op.in]: ["admin", "company"] };
+    } else if (role === "interviewers") {
+      where.role = "interviewer";
+    } else if (role === "candidates") {
+      where.role = "candidate";
+    } else {
+      where.role = role;
+    }
+  }
+
+  // 2. Status filter
+  if (status === "active") {
+    where.isActive = true;
+  } else if (status === "inactive") {
+    where.isActive = false;
+  }
+
+  // 3. Search query filter
+  if (search && search.trim()) {
+    const s = `%${search.trim().toLowerCase()}%`;
+    const isPostgres = db.sequelize.getDialect() === "postgres";
+    const likeOp = isPostgres ? Op.iLike : Op.like;
+
+    where[Op.or] = [
+      { email: { [likeOp]: s } },
+      { username: { [likeOp]: s } },
+    ];
+  }
+
+  // 4. Sorting
+  const validSortCols = ["createdAt", "email", "role", "username", "isActive"];
+  const col = validSortCols.includes(sortBy) ? sortBy : "createdAt";
+  const orderDir = (sortOrder || "DESC").toUpperCase() === "ASC" ? "ASC" : "DESC";
+
+  const queryOptions = {
+    where,
     include: [
       {
         model: db.profileModel,
@@ -90,12 +141,30 @@ exports.getAllUsers = async () => {
         required: false,
       },
     ],
-    order: [["createdAt", "DESC"]],
-  });
-};
+    order: [[col, orderDir]],
+    distinct: true,
+  };
 
-exports.restoreUser = async (userId) => {
-  const user = await db.userModel.findByPk(userId);
-  if (!user) return null;
-  return await user.update({ isActive: true });
+  // 5. Pagination if limit is supplied
+  if (limit && Number(limit) > 0) {
+    const lim = Number(limit);
+    const p = Math.max(1, Number(page) || 1);
+    queryOptions.limit = lim;
+    queryOptions.offset = (p - 1) * lim;
+
+    const result = await db.userModel.findAndCountAll(queryOptions);
+    return {
+      users: result.rows,
+      totalCount: result.count,
+      currentPage: p,
+      totalPages: Math.ceil(result.count / lim),
+      limit: lim,
+    };
+  }
+
+  const users = await db.userModel.findAll(queryOptions);
+  return {
+    users,
+    totalCount: users.length,
+  };
 };

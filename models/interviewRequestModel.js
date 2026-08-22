@@ -24,12 +24,17 @@ module.exports = (sequelize) => {
       interviewerUserId: {
         type: DataTypes.UUID,
         field: "interviewer_user_id",
-        allowNull: false,
+        allowNull: true,
         references: {
           model: "users",
           key: "user_id",
         },
         onDelete: "CASCADE",
+      },
+      requestType: {
+        type: DataTypes.ENUM("direct", "open"),
+        field: "request_type",
+        defaultValue: "direct",
       },
       roleRequirement: {
         type: DataTypes.STRING(150),

@@ -26,13 +26,14 @@ router.put("/me", auth, async (req, res) => {
     const userId = req.user?.userId;
     if (!userId) return res.status(401).json({ success: false, message: "Unauthorized." });
 
-    const { title, department, specialization, availability } = req.body || {};
+    const { title, department, specialization, availability, isMentor } = req.body || {};
 
     const updateData = {};
-    if (title !== undefined)         updateData.title = title;
-    if (department !== undefined)    updateData.department = department;
+    if (title !== undefined)          updateData.title = title;
+    if (department !== undefined)     updateData.department = department;
     if (specialization !== undefined) updateData.specialization = specialization;
-    if (availability !== undefined)  updateData.availability = availability;
+    if (availability !== undefined)   updateData.availability = availability;
+    if (isMentor !== undefined)       updateData.isMentor = Boolean(isMentor);
 
     const result = await interviewerService.updateInterviewerProfile(userId, updateData);
     return res.status(result.statusCode).json({

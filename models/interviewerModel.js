@@ -61,6 +61,11 @@ module.exports = (sequelize) => {
         field: "is_verified",
         defaultValue: false,
       },
+      isMentor: {
+        type: DataTypes.BOOLEAN,
+        field: "is_mentor",
+        defaultValue: true,
+      },
     },
     {
       tableName: "interviewers",

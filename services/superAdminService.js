@@ -152,6 +152,42 @@ exports.rejectCompany = async (userId) => {
   };
 };
 
+exports.approveInterviewer = async (userId) => {
+  const db = require("../models/index");
+  const interviewer = await db.interviewerModel.findOne({ where: { userId } });
+  if (interviewer) {
+    await interviewer.update({ isVerified: true });
+  }
+  const updatedUser = await userRepo.updateUser(userId, { isActive: true });
+  if (!updatedUser && !interviewer) {
+    return { success: false, statusCode: 404, message: "Interviewer user not found." };
+  }
+  return {
+    success: true,
+    statusCode: 200,
+    message: "Interviewer account verified & approved successfully",
+    data: { user: updatedUser, interviewer },
+  };
+};
+
+exports.rejectInterviewer = async (userId) => {
+  const db = require("../models/index");
+  const interviewer = await db.interviewerModel.findOne({ where: { userId } });
+  if (interviewer) {
+    await interviewer.update({ isVerified: false });
+  }
+  const updatedUser = await userRepo.updateUser(userId, { isActive: false });
+  if (!updatedUser && !interviewer) {
+    return { success: false, statusCode: 404, message: "Interviewer user not found." };
+  }
+  return {
+    success: true,
+    statusCode: 200,
+    message: "Interviewer account marked pending / rejected",
+    data: { user: updatedUser, interviewer },
+  };
+};
+
 exports.softDeleteCompany = async (userId) => {
   const deleted = await userRepo.softDeleteUser(userId);
   if (!deleted) {
@@ -177,13 +213,20 @@ exports.hardDeleteCompany = async (userId) => {
   };
 };
 
-exports.getAllUsers = async () => {
-  const users = await userRepo.getAllUsers();
+exports.getAllUsers = async (query = {}) => {
+  const result = await userRepo.getAllUsers(query);
+  const isPaginated = !!result.totalPages;
   return {
     success: true,
     statusCode: 200,
-    message: "All users fetched successfully",
-    data: users,
+    message: "Users fetched successfully",
+    data: isPaginated ? result.users : (Array.isArray(result) ? result : result.users || []),
+    pagination: isPaginated ? {
+      totalCount: result.totalCount,
+      currentPage: result.currentPage,
+      totalPages: result.totalPages,
+      limit: result.limit,
+    } : undefined,
   };
 };
 

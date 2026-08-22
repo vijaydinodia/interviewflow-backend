@@ -218,11 +218,12 @@ exports.hardDeleteCompany = async (req, res) => {
  */
 exports.getAllUsers = async (req, res) => {
   try {
-    const result = await superAdminService.getAllUsers();
+    const result = await superAdminService.getAllUsers(req.query);
     return res.status(result.statusCode).json({
       success: result.success,
       message: result.message,
       data: result.data,
+      pagination: result.pagination,
     });
   } catch (err) {
     return res.status(500).json({ success: false, message: err.message || "An unexpected error occurred." });
@@ -273,6 +274,40 @@ exports.hardDeleteUser = async (req, res) => {
     return res.status(result.statusCode).json({
       success: result.success,
       message: result.message,
+    });
+  } catch (err) {
+    return res.status(500).json({ success: false, message: err.message || "An unexpected error occurred." });
+  }
+};
+
+/**
+ * PUT /super-admin/interviewers/:id/approve
+ */
+exports.approveInterviewer = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const result = await superAdminService.approveInterviewer(id);
+    return res.status(result.statusCode).json({
+      success: result.success,
+      message: result.message,
+      data: result.data,
+    });
+  } catch (err) {
+    return res.status(500).json({ success: false, message: err.message || "An unexpected error occurred." });
+  }
+};
+
+/**
+ * PUT /super-admin/interviewers/:id/reject
+ */
+exports.rejectInterviewer = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const result = await superAdminService.rejectInterviewer(id);
+    return res.status(result.statusCode).json({
+      success: result.success,
+      message: result.message,
+      data: result.data,
     });
   } catch (err) {
     return res.status(500).json({ success: false, message: err.message || "An unexpected error occurred." });

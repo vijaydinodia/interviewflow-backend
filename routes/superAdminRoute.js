@@ -13,6 +13,8 @@ const {
   rejectCompany,
   softDeleteCompany,
   hardDeleteCompany,
+  approveInterviewer,
+  rejectInterviewer,
   getAllUsers,
   restoreUser,
   softDeleteUser,
@@ -27,6 +29,9 @@ router.put("/companies/:id/approve", auth, approveCompany);
 router.put("/companies/:id/reject", auth, rejectCompany);
 router.delete("/companies/:id/soft", auth, softDeleteCompany);
 router.delete("/companies/:id/hard", auth, hardDeleteCompany);
+
+router.put("/interviewers/:id/approve", auth, approveInterviewer);
+router.put("/interviewers/:id/reject", auth, rejectInterviewer);
 
 router.get("/users", auth, getAllUsers);
 router.put("/users/:id/restore", auth, restoreUser);
