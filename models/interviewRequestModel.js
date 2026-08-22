@@ -65,7 +65,7 @@ module.exports = (sequelize) => {
       roomCode: {
         type: DataTypes.STRING(50),
         field: "room_code",
-        allowNull: false,
+        allowNull: true,
       },
       candidateNotes: {
         type: DataTypes.TEXT,

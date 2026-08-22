@@ -1,5 +1,5 @@
 const db = require("../models/index");
-const { sendEmail } = require("./emailService");
+const { sendEmail, sendInterviewInvitationEmail } = require("./emailService");
 const path = require("path");
 const fs = require("fs");
 
@@ -7,6 +7,7 @@ exports.getMatchingInterviewers = async (filters = {}) => {
   const { role, language, skills, search } = filters;
 
   const interviewers = await db.interviewerModel.findAll({
+    where: { isVerified: true },
     include: [
       {
         model: db.userModel,
@@ -179,11 +180,11 @@ exports.createInterviewRequest = async (data) => {
     candidateNotes,
   } = data;
 
-  if (!candidateUserId || !roleRequirement || !roomCode) {
+  if (!candidateUserId || !roleRequirement) {
     return {
       success: false,
       statusCode: 400,
-      message: "Candidate ID, Role requirement, and Room Code are required.",
+      message: "Candidate ID and Role requirement are required.",
     };
   }
 
@@ -235,6 +236,7 @@ exports.createInterviewRequest = async (data) => {
     // Broadcast notification email to matching interviewers
     try {
       const matchingInterviewers = await db.interviewerModel.findAll({
+        where: { isVerified: true },
         include: [
           {
             model: db.userModel,
@@ -309,6 +311,17 @@ exports.createInterviewRequest = async (data) => {
           }).catch((err) => console.error("Broadcast email error:", err.message));
         }
       });
+
+      // Notify candidate using HTML interview invitation template
+      if (candidateUser?.email) {
+        sendInterviewInvitationEmail({
+          to: candidateUser.email,
+          candidateName,
+          roomCode,
+          roleName: roleRequirement,
+          time: `${scheduledDate} at ${scheduledTime}`,
+        }).catch((err) => console.error("Candidate confirmation email error:", err.message));
+      }
     } catch (e) {
       console.warn("Could not dispatch broadcast emails:", e.message);
     }
@@ -401,6 +414,17 @@ exports.createInterviewRequest = async (data) => {
     html: emailHtml,
     text: `New direct interview request from ${candidateName} for ${roleRequirement} at ${scheduledTime}. Google Meet: ${meetingLink}. Room: ${roomCode}`,
   }).catch((err) => console.error("Email send error:", err.message));
+
+  // Notify candidate using HTML interview invitation template
+  if (candidateUser?.email) {
+    sendInterviewInvitationEmail({
+      to: candidateUser.email,
+      candidateName,
+      roomCode,
+      roleName: roleRequirement,
+      time: `${scheduledDate} at ${scheduledTime}`,
+    }).catch((err) => console.error("Candidate confirmation email error:", err.message));
+  }
 
   return {
     success: true,
@@ -558,29 +582,33 @@ exports.updateRequestStatus = async ({ requestId, interviewerUserId, status, not
 
   const candidateEmail = request.candidateUser?.email;
   const candidateName = request.candidateUser?.firstName || request.candidateUser?.username || "Candidate";
-  const interviewerName = updatedInterviewer?.firstName || request.interviewerUser?.firstName || "Your Interviewer";
+  const interviewerName = updatedInterviewer?.firstName
+    ? `${updatedInterviewer.firstName} ${updatedInterviewer.lastName || ""}`.trim()
+    : request.interviewerUser?.firstName || "Your Interviewer";
+
+  const finalMeetingLink = updateFields.meetingLink || request.meetingLink;
 
   if (candidateEmail) {
     const isAccepted = status === "accepted";
     const subject = isAccepted
-      ? `Interview Confirmed: ${request.roleRequirement} with ${interviewerName} 🎉`
+      ? `🎉 Interview Confirmed: ${request.roleRequirement} with ${interviewerName}`
       : `Update on your Interview Request (${request.roleRequirement})`;
 
     const emailHtml = `
-      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; background-color: #0B151E; color: #ffffff; padding: 28px; border-radius: 16px;">
-        <div style="text-align: center; margin-bottom: 20px;">
-          <h1 style="color: #38BDF8; margin: 0; font-size: 22px;">Interview<span style="color: #22D3EE;">Flow</span></h1>
-          <p style="color: #94A3B8; font-size: 13px;">1-to-1 Interview Status Update</p>
+      <div style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; max-width: 620px; margin: 0 auto; background-color: #0B151E; color: #ffffff; padding: 32px; border-radius: 20px; border: 1px solid #1E293B;">
+        <div style="text-align: center; margin-bottom: 24px;">
+          <h1 style="color: #38BDF8; margin: 0; font-size: 26px; font-weight: 900; letter-spacing: -0.5px;">Interview<span style="color: #22D3EE;">Flow</span></h1>
+          <p style="color: #94A3B8; font-size: 13px; margin-top: 4px; font-weight: 600;">1-to-1 Technical Interview Confirmed</p>
         </div>
 
-        <div style="background-color: #080E18; padding: 22px; border-radius: 12px; border: 1px solid #334155;">
-          <h2 style="color: #F8FAFC; font-size: 17px; margin-top: 0;">Hello ${candidateName},</h2>
-          <p style="color: #CBD5E1; font-size: 14px; line-height: 1.5;">
+        <div style="background-color: #080E18; padding: 24px; border-radius: 16px; border: 1px solid #334155;">
+          <h2 style="color: #F8FAFC; font-size: 18px; margin-top: 0;">Hello ${candidateName}, 👋</h2>
+          <p style="color: #CBD5E1; font-size: 14px; line-height: 1.6;">
             ${
               isAccepted
-                ? `Great news! <strong>${interviewerName}</strong> has <strong>ACCEPTED</strong> your interview request.`
+                ? `Great news! Technical interviewer <strong>${interviewerName}</strong> has <strong>ACCEPTED</strong> your interview request.`
                 : status === "rejected"
-                ? `Your interview request for <strong>${request.roleRequirement}</strong> could not be scheduled at this time.`
+                ? `Your interview request for <strong>${request.roleRequirement}</strong> could not be accepted at this time.`
                 : `Your interview session status is now: <strong>${status.toUpperCase()}</strong>.`
             }
           </p>
@@ -588,28 +616,56 @@ exports.updateRequestStatus = async ({ requestId, interviewerUserId, status, not
           ${
             isAccepted
               ? `
-            <div style="background-color: #0B151E; padding: 14px; border-radius: 8px; border: 1px solid #10B981; margin: 16px 0;">
-              <p style="margin: 4px 0; font-size: 13px; color: #94A3B8;"><strong>Target Role:</strong> <span style="color: #F8FAFC;">${request.roleRequirement}</span></p>
-              <p style="margin: 4px 0; font-size: 13px; color: #94A3B8;"><strong>Language:</strong> <span style="color: #34D399;">${request.language || "JavaScript"}</span></p>
-              <p style="margin: 4px 0; font-size: 13px; color: #94A3B8;"><strong>Scheduled Time:</strong> <span style="color: #F8FAFC;">${request.scheduledDate} (${request.scheduledTime})</span></p>
-              <p style="margin: 4px 0; font-size: 14px; color: #10B981;"><strong>Room Code:</strong> <span style="font-family: monospace; font-size: 16px; font-weight: bold; color: #38BDF8;">${request.roomCode}</span></p>
+            <div style="background-color: #0B151E; padding: 18px; border-radius: 12px; border: 1px solid #10B981; margin: 20px 0;">
+              <table style="width: 100%; border-collapse: collapse; font-size: 13px;">
+                <tr>
+                  <td style="padding: 6px 0; color: #94A3B8; width: 40%;"><strong>🎯 Target Role:</strong></td>
+                  <td style="padding: 6px 0; color: #F8FAFC; font-weight: bold;">${request.roleRequirement}</td>
+                </tr>
+                <tr>
+                  <td style="padding: 6px 0; color: #94A3B8;"><strong>💻 Coding Language:</strong></td>
+                  <td style="padding: 6px 0; color: #22D3EE; font-weight: bold;">${request.language || "JavaScript"}</td>
+                </tr>
+                <tr>
+                  <td style="padding: 6px 0; color: #94A3B8;"><strong>📅 Scheduled Date:</strong></td>
+                  <td style="padding: 6px 0; color: #F8FAFC; font-weight: bold;">${request.scheduledDate}</td>
+                </tr>
+                <tr>
+                  <td style="padding: 6px 0; color: #94A3B8;"><strong>🕒 Scheduled Slot:</strong></td>
+                  <td style="padding: 6px 0; color: #34D399; font-weight: bold;">${request.scheduledTime}</td>
+                </tr>
+                <tr>
+                  <td style="padding: 6px 0; color: #94A3B8;"><strong>🔑 Session Room Code:</strong></td>
+                  <td style="padding: 6px 0;">
+                    <span style="font-family: monospace; font-size: 16px; font-weight: 800; color: #38BDF8; background-color: #0F172A; padding: 4px 10px; border-radius: 6px; border: 1px dashed #0284C7;">
+                      ${request.roomCode}
+                    </span>
+                  </td>
+                </tr>
+              </table>
             </div>
 
-            ${request.meetingLink ? `
-            <div style="text-align: center; margin: 20px 0;">
-              <a href="${request.meetingLink}" target="_blank" style="display: inline-block; background: linear-gradient(135deg, #10B981, #06B6D4); color: #000000; font-weight: 800; font-size: 14px; text-decoration: none; padding: 12px 28px; border-radius: 12px; box-shadow: 0 4px 12px rgba(6, 182, 212, 0.3);">
+            ${finalMeetingLink ? `
+            <div style="text-align: center; margin: 24px 0 16px 0;">
+              <a href="${finalMeetingLink}" target="_blank" style="display: inline-block; background: linear-gradient(135deg, #10B981, #06B6D4); color: #000000; font-weight: 800; font-size: 14px; text-decoration: none; padding: 14px 32px; border-radius: 12px; box-shadow: 0 4px 14px rgba(16, 185, 129, 0.4);">
                 📹 Join Google Meet Video Call
               </a>
-              <p style="color: #64748B; font-size: 11px; margin-top: 6px; font-family: monospace;">${request.meetingLink}</p>
+              <p style="color: #64748B; font-size: 11px; margin-top: 8px; font-family: monospace;">Call Link: ${finalMeetingLink}</p>
             </div>
             ` : ""}
 
-            <p style="color: #94A3B8; font-size: 12px;">Please enter the room at your scheduled time via your Candidate Dashboard.</p>
+            <p style="color: #94A3B8; font-size: 12px; line-height: 1.6;">
+              Please enter the interview room at your scheduled slot time via your Candidate Dashboard.
+            </p>
             `
               : ""
           }
 
-          ${note ? `<p style="color: #94A3B8; font-size: 12px;"><strong>Note from Interviewer:</strong> ${note}</p>` : ""}
+          ${note ? `<div style="background-color: #0B151E; padding: 12px 16px; border-radius: 10px; border-left: 3px solid #F59E0B; margin-top: 16px;"><p style="margin: 0; color: #94A3B8; font-size: 11px; text-transform: uppercase; font-weight: bold;">Note from Interviewer:</p><p style="margin: 4px 0 0 0; color: #E2E8F0; font-size: 13px; font-style: italic;">"${note}"</p></div>` : ""}
+        </div>
+
+        <div style="text-align: center; margin-top: 24px; color: #64748B; font-size: 12px;">
+          <p style="margin: 0;">© ${new Date().getFullYear()} InterviewFlow Inc. All rights reserved.</p>
         </div>
       </div>
     `;
@@ -618,7 +674,7 @@ exports.updateRequestStatus = async ({ requestId, interviewerUserId, status, not
       to: candidateEmail,
       subject,
       html: emailHtml,
-      text: `Your interview request status for ${request.roleRequirement} is now ${status}.`,
+      text: `Your interview request status for ${request.roleRequirement} with ${interviewerName} is now ${status}. Scheduled Slot: ${request.scheduledTime}. Meet Link: ${finalMeetingLink || "N/A"}.`,
     }).catch((err) => console.error("Email send error:", err.message));
   }
 
@@ -657,6 +713,7 @@ exports.rerouteRequestToOpenPool = async ({ requestId, candidateUserId }) => {
       : "Candidate";
 
     const matchingInterviewers = await db.interviewerModel.findAll({
+      where: { isVerified: true },
       include: [
         {
           model: db.userModel,

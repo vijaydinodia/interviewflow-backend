@@ -1,4 +1,4 @@
-// InterviewFlow Backend Server - Active Production Database (Aiven Cloud MySQL)
+// InterviewFlow Backend Server - Flexible Room Code System Active
 const express = require("express");
 require("dotenv").config();
 const userRoute = require("./routes/userRoute");
@@ -11,6 +11,7 @@ const uploadRoute = require("./routes/uploadRoute");
 const interviewRequestRoute = require("./routes/interviewRequestRoute");
 const codeExecutionRoute = require("./routes/codeExecutionRoute");
 const bugReportRoute = require("./routes/bugReportRoute");
+const sessionRoute = require("./routes/sessionRoute");
 const dbConnect = require("./config/dbConnection");
 
 const app = express();
@@ -62,6 +63,9 @@ app.use("/api/code", codeExecutionRoute);
 
 app.use("/bugs", bugReportRoute);
 app.use("/api/bugs", bugReportRoute);
+
+app.use("/sessions", sessionRoute);
+app.use("/api/sessions", sessionRoute);
 
 app.use((req, res) => {
   res.status(404).json({

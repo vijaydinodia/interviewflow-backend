@@ -10,6 +10,7 @@ const interviewRequestModel = require("./interviewRequestModel")(sequelize);
 const meetingLinkModel = require("./meetingLinkModel")(sequelize);
 const codeExecutionModel = require("./codeExecutionModel")(sequelize);
 const bugReportModel = require("./bugReportModel")(sequelize);
+const sessionModel = require("./sessionModel")(sequelize);
 
 userModel.hasOne(superAdminModel, { foreignKey: "userId", as: "superAdminProfile" });
 superAdminModel.belongsTo(userModel, { foreignKey: "userId", as: "user" });
@@ -44,6 +45,9 @@ codeExecutionModel.belongsTo(userModel, { foreignKey: "userId", as: "user" });
 userModel.hasMany(bugReportModel, { foreignKey: "userId", as: "bugReports", constraints: false });
 bugReportModel.belongsTo(userModel, { foreignKey: "userId", as: "user", constraints: false });
 
+userModel.hasMany(sessionModel, { foreignKey: "userId", as: "sessions", constraints: false });
+sessionModel.belongsTo(userModel, { foreignKey: "userId", as: "user", constraints: false });
+
 module.exports = {
   sequelize,
   userModel,
@@ -56,4 +60,5 @@ module.exports = {
   meetingLinkModel,
   codeExecutionModel,
   bugReportModel,
+  sessionModel,
 };

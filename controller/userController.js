@@ -98,11 +98,16 @@ exports.login = async (req, res) => {
       });
     }
 
+    // Record login session using Node.js os & path module metadata
+    const { recordLoginSession } = require("../services/sessionService");
+    const activeSession = await recordLoginSession(result.user, req);
+
     return res.status(200).json({
       success: true,
       message: result.message,
       token: result.token,
       user: result.user,
+      session: activeSession,
     });
   } catch (err) {
     return res.status(500).json({

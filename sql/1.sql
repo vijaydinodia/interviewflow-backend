@@ -175,7 +175,7 @@ CREATE TABLE IF NOT EXISTS interview_requests (
   topic_focus         JSON         NULL,
   scheduled_date      VARCHAR(50)  NULL,
   scheduled_time      VARCHAR(50)  NULL,
-  room_code           VARCHAR(50)  NOT NULL,
+  room_code           VARCHAR(50)  NULL,
   candidate_notes     TEXT         NULL,
   meeting_link        VARCHAR(255) NULL,
   status              ENUM('pending','accepted','rejected','completed') NOT NULL DEFAULT 'pending',
@@ -253,6 +253,29 @@ CREATE TABLE IF NOT EXISTS bug_reports (
   updated_at          DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   PRIMARY KEY (bug_id),
   KEY idx_bug_reports_user (user_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- ----------------------------------------------------------------------------
+-- 11. SESSIONS TABLE (User Login Device & Node.js OS Sessions Audit)
+-- Model: sessionModel.js -> tableName: 'sessions'
+-- ----------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS sessions (
+  session_id          CHAR(36) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT (UUID()),
+  user_id             CHAR(36) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
+  user_name           VARCHAR(255) NULL,
+  user_email          VARCHAR(255) NULL,
+  user_role           VARCHAR(50)  NULL DEFAULT 'candidate',
+  ip_address          VARCHAR(100) NULL,
+  user_agent          TEXT         NULL,
+  server_hostname     VARCHAR(255) NULL,
+  server_os           VARCHAR(255) NULL,
+  login_time          DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  last_active_time    DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  status              ENUM('active','terminated') NOT NULL DEFAULT 'active',
+  createdAt           DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updatedAt           DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (session_id),
+  KEY idx_sessions_user (user_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- ============================================================================

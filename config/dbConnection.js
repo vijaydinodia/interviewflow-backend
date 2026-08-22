@@ -33,11 +33,13 @@ const dbConnect = async () => {
     
     try {
       await db.bugReportModel.sync();
+      await db.sessionModel.sync();
     } catch (bugSyncErr) {
       await db.sequelize.query("DROP TABLE IF EXISTS `bug_reports`;");
       await db.bugReportModel.sync();
+      await db.sessionModel.sync();
     }
-    console.log("DB schema and bug_reports table synced successfully");
+    console.log("DB schema, bug_reports, and sessions tables synced successfully");
 
     // Safe schema adjustments for interview_requests
     try {
