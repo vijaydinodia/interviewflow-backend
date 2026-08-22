@@ -135,7 +135,31 @@ exports.forgotPassword = async (req, res) => {
     return res.status(200).json({
       success: true,
       message: result.message,
-      resetToken: result.resetToken,
+    });
+  } catch (err) {
+    return res.status(500).json({
+      success: false,
+      message: err.message || "An unexpected server error occurred.",
+    });
+  }
+};
+
+exports.verifyOtp = async (req, res) => {
+  try {
+    const { email, otpCode } = req.body;
+
+    if (!email || !otpCode) {
+      return res.status(400).json({
+        success: false,
+        message: "Email and OTP code are required.",
+      });
+    }
+
+    const result = await userService.verifyOtp(email, otpCode);
+
+    return res.status(result.statusCode || 200).json({
+      success: result.success,
+      message: result.message,
     });
   } catch (err) {
     return res.status(500).json({

@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Interview Invitation — InterviewFlow</title>
+</head>
+<body style="margin:0; padding:0; background-color:#060D17; font-family: Arial, sans-serif;">
+
+  <div style="max-width:600px; margin:32px auto; background-color:#0B151E; border-radius:16px; border:1px solid #1E293B; overflow:hidden;">
+
+    <!-- Header -->
+    <div style="padding:28px 30px 20px; text-align:center; border-bottom:1px solid #1E293B;">
+      <h1 style="margin:0; font-size:26px; color:#38BDF8; letter-spacing:-0.5px;">
+        Interview<span style="color:#22D3EE;">Flow</span>
+      </h1>
+      <p style="margin:6px 0 0; color:#64748B; font-size:12px; letter-spacing:0.3px;">
+        1-to-1 Technical Interview Invitation
+      </p>
+    </div>
+
+    <!-- Body -->
+    <div style="padding:28px 30px;">
+
+      <h2 style="margin:0 0 12px; color:#F8FAFC; font-size:20px;">
+        Hello, {{candidateName}} 👋
+      </h2>
+      <p style="margin:0 0 20px; color:#CBD5E1; font-size:14px; line-height:1.7;">
+        Your live 1-to-1 technical interview has been scheduled on <strong style="color:#F8FAFC;">InterviewFlow</strong>.
+        Please review the details below and join on time.
+      </p>
+
+      <!-- Interview Detail Card -->
+      <div style="padding:20px; background-color:#080E18; border-radius:12px; border:1px solid #06B6D4; margin-bottom:20px;">
+        <table style="width:100%; border-collapse:collapse;">
+          <tr>
+            <td style="padding:6px 0; color:#94A3B8; font-size:13px; width:140px;">Target Role</td>
+            <td style="padding:6px 0; color:#F8FAFC; font-size:13px; font-weight:bold;">{{roleName}}</td>
+          </tr>
+          <tr>
+            <td style="padding:6px 0; color:#94A3B8; font-size:13px;">Scheduled Time</td>
+            <td style="padding:6px 0; color:#F8FAFC; font-size:13px; font-weight:bold;">{{time}}</td>
+          </tr>
+          <tr>
+            <td style="padding:6px 0; color:#94A3B8; font-size:13px;">Room Code</td>
+            <td style="padding:6px 0;">
+              <span style="font-family:monospace; font-size:18px; font-weight:800; color:#38BDF8; letter-spacing:3px; background-color:#0F172A; padding:4px 12px; border-radius:6px; border:1px dashed #0284C7;">
+                {{roomCode}}
+              </span>
+            </td>
+          </tr>
+        </table>
+      </div>
+
+      <!-- Tips -->
+      <div style="padding:14px 18px; background-color:#0F172A; border-radius:10px; border-left:3px solid #F59E0B; margin-bottom:24px;">
+        <p style="margin:0; color:#FCD34D; font-size:12px; font-weight:bold; margin-bottom:6px;">⚠️ Before You Join</p>
+        <ul style="margin:0; padding-left:18px; color:#CBD5E1; font-size:12px; line-height:1.8;">
+          <li>Join the room <strong>5 minutes early</strong>.</li>
+          <li>Test your webcam and microphone beforehand.</li>
+          <li>Use the exact Room Code above to enter your interview session.</li>
+          <li>Ensure a stable internet connection.</li>
+        </ul>
+      </div>
+
+      <!-- CTA Button -->
+      <div style="text-align:center;">
+        <a href="{{loginUrl}}" target="_blank"
+           style="display:inline-block; background:linear-gradient(135deg,#0284C7 0%,#06B6D4 100%); color:#000000; font-weight:800; font-size:13px; text-decoration:none; padding:12px 28px; border-radius:10px; letter-spacing:0.3px;">
+          Open InterviewFlow &rarr;
+        </a>
+      </div>
+
+    </div>
+
+    <!-- Footer -->
+    <div style="padding:18px 30px; border-top:1px solid #1E293B; text-align:center;">
+      <p style="margin:0; color:#475569; font-size:11px;">
+        &copy; {{year}} InterviewFlow. All rights reserved.
+      </p>
+      <p style="margin:4px 0 0; color:#334155; font-size:11px;">
+        This is an automated interview notification. Please do not reply to this email.
+      </p>
+    </div>
+
+  </div>
+</body>
+</html>

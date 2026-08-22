@@ -19,7 +19,20 @@ exports.findUserByResetToken = async (resetToken) => {
 exports.updateUser = async (userId, updateData) => {
   const user = await db.userModel.findByPk(userId);
   if (!user) return null;
-  return await user.update(updateData);
+  try {
+    return await user.update(updateData);
+  } catch (err) {
+    if (err.message && (err.message.includes("Unknown column") || err.message.includes("otp_code") || err.message.includes("otp_expires"))) {
+      try {
+        await db.sequelize.query("ALTER TABLE `users` ADD COLUMN `otp_code` VARCHAR(6) NULL;");
+      } catch (e) {}
+      try {
+        await db.sequelize.query("ALTER TABLE `users` ADD COLUMN `otp_expires` DATETIME NULL;");
+      } catch (e) {}
+      return await user.update(updateData);
+    }
+    throw err;
+  }
 };
 
 exports.getAllCompanies = async () => {

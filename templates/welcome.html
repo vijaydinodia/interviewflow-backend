@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Welcome to InterviewFlow</title>
+</head>
+<body style="margin:0; padding:0; background-color:#060D17; font-family: Arial, sans-serif;">
+
+  <div style="max-width:600px; margin:32px auto; background-color:#0B151E; border-radius:16px; border:1px solid #1E293B; overflow:hidden;">
+
+    <!-- Header -->
+    <div style="padding:28px 30px 20px; text-align:center; border-bottom:1px solid #1E293B;">
+      <h1 style="margin:0; font-size:26px; color:#38BDF8; letter-spacing:-0.5px;">
+        Interview<span style="color:#22D3EE;">Flow</span>
+      </h1>
+      <p style="margin:6px 0 0; color:#64748B; font-size:12px; letter-spacing:0.3px;">
+        Technical Interview &amp; Assessment Platform
+      </p>
+    </div>
+
+    <!-- Body -->
+    <div style="padding:28px 30px;">
+
+      <h2 style="margin:0 0 12px; color:#F8FAFC; font-size:20px;">
+        Welcome, {{name}}! 🎉
+      </h2>
+      <p style="margin:0 0 20px; color:#CBD5E1; font-size:14px; line-height:1.7;">
+        Your InterviewFlow account has been created successfully. You are registered as an official
+        <strong style="color:#38BDF8;">{{roleName}}</strong>.
+      </p>
+
+      <!-- Password Block (shown only when plainPassword is provided) -->
+      {{#if plainPassword}}
+      <div style="margin:0 0 20px; padding:18px; background-color:#030712; border-radius:12px; border:1px solid #0284C7; text-align:center;">
+        <p style="margin:0 0 10px; color:#38BDF8; font-size:11px; font-weight:bold; text-transform:uppercase; letter-spacing:1px;">
+          Your Auto-Generated Secure Password
+        </p>
+        <div style="display:inline-block; background-color:#0F172A; color:#4ADE80; font-family:monospace; font-size:22px; font-weight:800; letter-spacing:4px; padding:10px 22px; border-radius:8px; border:1px dashed #22C55E;">
+          {{plainPassword}}
+        </div>
+        <p style="margin:10px 0 0; color:#94A3B8; font-size:12px;">
+          Login Email: <strong style="color:#FFFFFF;">{{email}}</strong>
+        </p>
+      </div>
+      {{/if}}
+
+      <p style="margin:0 0 24px; color:#94A3B8; font-size:13px; line-height:1.6;">
+        Use these credentials to sign in to your InterviewFlow account at any time.
+        Keep your password safe and do not share it with anyone.
+      </p>
+
+      <!-- CTA Button -->
+      <div style="text-align:center;">
+        <a href="{{loginUrl}}" target="_blank"
+           style="display:inline-block; background:linear-gradient(135deg,#0284C7 0%,#06B6D4 100%); color:#000000; font-weight:800; font-size:13px; text-decoration:none; padding:12px 28px; border-radius:10px; letter-spacing:0.3px;">
+          Go to InterviewFlow &rarr;
+        </a>
+      </div>
+
+    </div>
+
+    <!-- Footer -->
+    <div style="padding:18px 30px; border-top:1px solid #1E293B; text-align:center;">
+      <p style="margin:0; color:#475569; font-size:11px;">
+        &copy; {{year}} InterviewFlow. All rights reserved.
+      </p>
+      <p style="margin:4px 0 0; color:#334155; font-size:11px;">
+        This is an automated account notification. Please do not reply to this email.
+      </p>
+    </div>
+
+  </div>
+</body>
+</html>

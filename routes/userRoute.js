@@ -6,6 +6,7 @@ const {
   login,
   forgotPassword,
   resetPassword,
+  verifyOtp,
   sendTestEmail,
   sendInterviewInviteEmail,
 } = require("../controller/userController");
@@ -20,9 +21,10 @@ router.post("/signin", login);
 
 router.post("/forgot-password", forgotPassword);
 router.post("/forget-password", forgotPassword);
+router.post("/verify-otp", verifyOtp);
 router.post("/reset-password", resetPassword);
 
 router.post("/send-test-email", sendTestEmail);
 router.post("/send-interview-invite", sendInterviewInviteEmail);
 
-module.exports = router;
+module.exports = router;

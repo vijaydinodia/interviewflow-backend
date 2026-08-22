@@ -1,4 +1,5 @@
 const bugReportService = require("../services/bugReportService");
+const { sendBugReportConfirmationEmail } = require("../services/emailService");
 
 exports.submitBugReport = async (req, res) => {
   try {
@@ -18,6 +19,19 @@ exports.submitBugReport = async (req, res) => {
       pageUrl: pageUrl || "",
       status: "open",
     });
+
+    // Send confirmation email to the reporter (fire-and-forget, don't block response)
+    const reporterEmail = userEmail || req.user?.email;
+    if (reporterEmail) {
+      sendBugReportConfirmationEmail({
+        to: reporterEmail,
+        reporterName: userName || req.user?.fullName || "User",
+        bugTitle: title,
+        bugCategory: category || "General UI",
+        bugSeverity: severity || "medium",
+        bugId: report.bugId || report.bug_id,
+      }).catch((err) => console.error("Bug confirmation email error:", err.message));
+    }
 
     return res.status(201).json({
       success: true,

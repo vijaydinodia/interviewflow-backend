@@ -62,6 +62,16 @@ module.exports = (sequelize) => {
         field: "reset_token_expires",
         allowNull: true,
       },
+      otpCode: {
+        type: DataTypes.STRING(6),
+        field: "otp_code",
+        allowNull: true,
+      },
+      otpExpires: {
+        type: DataTypes.DATE,
+        field: "otp_expires",
+        allowNull: true,
+      },
     },
     {
       tableName: "users",

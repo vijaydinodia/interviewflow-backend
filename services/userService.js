@@ -2,8 +2,7 @@ const userRepo = require("../repository/userRepo");
 const db = require("../models/index");
 const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
-const crypto = require("crypto");
-const { sendWelcomeEmail } = require("./emailService");
+const { sendWelcomeEmail, sendOtpEmail } = require("./emailService");
 const saltRounds = 10;
 
 exports.createUser = async (data) => {
@@ -144,13 +143,14 @@ exports.login = async (data) => {
   };
 };
 
+// Generate a secure 6-digit OTP
+function generateOtp() {
+  return Math.floor(100000 + Math.random() * 900000).toString();
+}
+
 exports.forgotPassword = async (email) => {
   if (!email) {
-    return {
-      success: false,
-      statusCode: 400,
-      message: "Email is required.",
-    };
+    return { success: false, statusCode: 400, message: "Email is required." };
   }
 
   const user = await userRepo.findUserByEmail(email);
@@ -162,19 +162,47 @@ exports.forgotPassword = async (email) => {
     };
   }
 
-  const resetToken = crypto.randomBytes(32).toString("hex");
-  const resetTokenExpires = new Date(Date.now() + 60 * 60 * 1000);
+  const otpCode = generateOtp();
+  const otpExpires = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
 
-  await userRepo.updateUser(user.userId, {
-    resetToken,
-    resetTokenExpires,
-  });
+  await userRepo.updateUser(user.userId, { otpCode, otpExpires });
+
+  // Send OTP email (fire-and-forget — don't block response)
+  sendOtpEmail({
+    to: user.email,
+    name: user.firstName || user.username || "User",
+    otpCode,
+  }).catch((err) => console.error("OTP email send error:", err.message));
 
   return {
     success: true,
     statusCode: 200,
-    message: "Password reset link generated successfully.",
-    resetToken,
+    message: "A 6-digit OTP has been sent to your email address. It expires in 10 minutes.",
+  };
+};
+
+exports.verifyOtp = async (email, otpCode) => {
+  if (!email || !otpCode) {
+    return { success: false, statusCode: 400, message: "Email and OTP code are required." };
+  }
+
+  const user = await userRepo.findUserByEmail(email);
+  if (!user) {
+    return { success: false, statusCode: 404, message: "No account found with this email." };
+  }
+
+  if (!user.otpCode || user.otpCode !== String(otpCode)) {
+    return { success: false, statusCode: 400, message: "Invalid OTP code. Please try again." };
+  }
+
+  if (!user.otpExpires || new Date(user.otpExpires) < new Date()) {
+    return { success: false, statusCode: 400, message: "OTP has expired. Please request a new one." };
+  }
+
+  return {
+    success: true,
+    statusCode: 200,
+    message: "OTP verified successfully. You may now reset your password.",
   };
 };
 
@@ -221,6 +249,8 @@ exports.resetPassword = async ({ email, resetToken, token, newPassword, password
     password: hash,
     resetToken: null,
     resetTokenExpires: null,
+    otpCode: null,
+    otpExpires: null,
   });
 
   return {

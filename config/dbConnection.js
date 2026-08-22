@@ -2,13 +2,17 @@ const mysql2 = require("mysql2/promise");
 const db = require("../models");
 
 const dbConnect = async () => {
+  const isSsl = process.env.DB_SSL === "true" || process.env.DB_SSL === "1";
+
+  // Step 1: Raw connection for database creation if using local MySQL
   try {
     const connection = await mysql2.createConnection({
       host: process.env.DB_HOST || "localhost",
-      port: process.env.DB_PORT || 3306,
+      port: parseInt(process.env.DB_PORT, 10) || 3306,
       user: process.env.DB_USER || "root",
       password: process.env.DB_PASSWORD || "",
-      connectTimeout: 3000,
+      ssl: isSsl ? { rejectUnauthorized: false } : undefined,
+      connectTimeout: 10000,
     });
 
     await connection.query(
@@ -16,68 +20,85 @@ const dbConnect = async () => {
     );
     console.log(`Database '${process.env.DB_NAME || "interviewflow"}' ready.`);
     await connection.end();
+  } catch (rawConnErr) {
+    console.log("Raw DB init note (cloud DB managed database active):", rawConnErr.message);
+  }
 
+  // Step 2: Authenticate and sync Sequelize models
+  try {
     await db.sequelize.authenticate();
-    console.log("DB is connected successfully");
+    console.log("DB is connected successfully to Production / Cloud DB");
 
+    await db.sequelize.sync();
+    
     try {
-      await db.sequelize.sync();
-      try {
-        await db.bugReportModel.sync();
-      } catch (bugSyncErr) {
-        await db.sequelize.query("DROP TABLE IF EXISTS `bug_reports`;");
-        await db.bugReportModel.sync();
+      await db.bugReportModel.sync();
+    } catch (bugSyncErr) {
+      await db.sequelize.query("DROP TABLE IF EXISTS `bug_reports`;");
+      await db.bugReportModel.sync();
+    }
+    console.log("DB schema and bug_reports table synced successfully");
+
+    // Safe schema adjustments for interview_requests
+    try {
+      const [existingCols] = await db.sequelize.query("SHOW COLUMNS FROM `interview_requests`;");
+      const colNames = existingCols.map((c) => c.Field);
+
+      if (!colNames.includes("request_type")) {
+        await db.sequelize.query("ALTER TABLE `interview_requests` ADD COLUMN `request_type` VARCHAR(20) DEFAULT 'direct';");
       }
-      console.log("DB schema and bug_reports table synced successfully");
-
-      // Safe schema adjustments for open matching requests
-      try {
-        const [existingCols] = await db.sequelize.query("SHOW COLUMNS FROM `interview_requests`;");
-        const colNames = existingCols.map((c) => c.Field);
-
-        if (!colNames.includes("request_type")) {
-          await db.sequelize.query("ALTER TABLE `interview_requests` ADD COLUMN `request_type` VARCHAR(20) DEFAULT 'direct';");
-        }
-        if (!colNames.includes("meeting_link")) {
-          await db.sequelize.query("ALTER TABLE `interview_requests` ADD COLUMN `meeting_link` VARCHAR(255) NULL;");
-        }
-        if (!colNames.includes("candidate_notes")) {
-          await db.sequelize.query("ALTER TABLE `interview_requests` ADD COLUMN `candidate_notes` TEXT NULL;");
-        }
-        if (!colNames.includes("topic_focus")) {
-          await db.sequelize.query("ALTER TABLE `interview_requests` ADD COLUMN `topic_focus` JSON NULL;");
-        }
-        if (!colNames.includes("scheduled_date")) {
-          await db.sequelize.query("ALTER TABLE `interview_requests` ADD COLUMN `scheduled_date` VARCHAR(50) NULL;");
-        }
-        if (!colNames.includes("scheduled_time")) {
-          await db.sequelize.query("ALTER TABLE `interview_requests` ADD COLUMN `scheduled_time` VARCHAR(50) NULL;");
-        }
-        if (!colNames.includes("room_code")) {
-          await db.sequelize.query("ALTER TABLE `interview_requests` ADD COLUMN `room_code` VARCHAR(50) NOT NULL;");
-        }
-        if (!colNames.includes("role_requirement")) {
-          await db.sequelize.query("ALTER TABLE `interview_requests` ADD COLUMN `role_requirement` VARCHAR(150) NOT NULL;");
-        }
-        if (!colNames.includes("language")) {
-          await db.sequelize.query("ALTER TABLE `interview_requests` ADD COLUMN `language` VARCHAR(50) NULL;");
-        }
-        if (!colNames.includes("status")) {
-          await db.sequelize.query("ALTER TABLE `interview_requests` ADD COLUMN `status` ENUM('pending', 'accepted', 'rejected', 'completed') DEFAULT 'pending';");
-        }
-
-        await db.sequelize.query("ALTER TABLE `interview_requests` MODIFY `interviewer_user_id` CHAR(36) NULL;");
-        console.log("interview_requests schema fully verified and synchronized.");
-      } catch (alterErr) {
-        console.warn("DB migration note:", alterErr.message);
+      if (!colNames.includes("meeting_link")) {
+        await db.sequelize.query("ALTER TABLE `interview_requests` ADD COLUMN `meeting_link` VARCHAR(255) NULL;");
       }
-    } catch (syncErr) {
-      console.warn("DB sync note:", syncErr.message);
+      if (!colNames.includes("candidate_notes")) {
+        await db.sequelize.query("ALTER TABLE `interview_requests` ADD COLUMN `candidate_notes` TEXT NULL;");
+      }
+      if (!colNames.includes("topic_focus")) {
+        await db.sequelize.query("ALTER TABLE `interview_requests` ADD COLUMN `topic_focus` JSON NULL;");
+      }
+      if (!colNames.includes("scheduled_date")) {
+        await db.sequelize.query("ALTER TABLE `interview_requests` ADD COLUMN `scheduled_date` VARCHAR(50) NULL;");
+      }
+      if (!colNames.includes("scheduled_time")) {
+        await db.sequelize.query("ALTER TABLE `interview_requests` ADD COLUMN `scheduled_time` VARCHAR(50) NULL;");
+      }
+      if (!colNames.includes("room_code")) {
+        await db.sequelize.query("ALTER TABLE `interview_requests` ADD COLUMN `room_code` VARCHAR(50) NOT NULL;");
+      }
+      if (!colNames.includes("role_requirement")) {
+        await db.sequelize.query("ALTER TABLE `interview_requests` ADD COLUMN `role_requirement` VARCHAR(150) NOT NULL;");
+      }
+      if (!colNames.includes("language")) {
+        await db.sequelize.query("ALTER TABLE `interview_requests` ADD COLUMN `language` VARCHAR(50) NULL;");
+      }
+      if (!colNames.includes("status")) {
+        await db.sequelize.query("ALTER TABLE `interview_requests` ADD COLUMN `status` ENUM('pending', 'accepted', 'rejected', 'completed') DEFAULT 'pending';");
+      }
+
+      await db.sequelize.query("ALTER TABLE `interview_requests` MODIFY `interviewer_user_id` CHAR(36) NULL;");
+      console.log("interview_requests schema fully verified and synchronized.");
+    } catch (alterErr) {
+      console.warn("DB migration note:", alterErr.message);
+    }
+
+    // Add OTP columns to users table if they don't exist
+    try {
+      const [userCols] = await db.sequelize.query("SHOW COLUMNS FROM `users`;");
+      const userColNames = userCols.map((c) => c.Field);
+      if (!userColNames.includes("otp_code")) {
+        await db.sequelize.query("ALTER TABLE `users` ADD COLUMN `otp_code` VARCHAR(6) NULL;");
+        console.log("Added otp_code column to users table.");
+      }
+      if (!userColNames.includes("otp_expires")) {
+        await db.sequelize.query("ALTER TABLE `users` ADD COLUMN `otp_expires` DATETIME NULL;");
+        console.log("Added otp_expires column to users table.");
+      }
+    } catch (otpMigErr) {
+      console.warn("OTP column migration note:", otpMigErr.message);
     }
   } catch (err) {
-    console.warn("Database Connection Note:", err.message);
+    console.error("Database Connection Error:", err.message);
   }
 };
 
 module.exports = dbConnect;
-
