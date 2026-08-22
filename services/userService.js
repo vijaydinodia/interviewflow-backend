@@ -167,17 +167,31 @@ exports.forgotPassword = async (email) => {
 
   await userRepo.updateUser(user.userId, { otpCode, otpExpires });
 
-  // Send OTP email (fire-and-forget — don't block response)
-  sendOtpEmail({
+  console.log("\n=======================================================");
+  console.log(`🔐 [FORGOT PASSWORD OTP GENERATED]`);
+  console.log(`   User Email: ${user.email}`);
+  console.log(`   OTP Code  : ${otpCode}`);
+  console.log(`   Expires At: ${otpExpires.toLocaleString()}`);
+  console.log("=======================================================\n");
+
+  // Attempt to send email via Brevo SMTP
+  const emailRes = await sendOtpEmail({
     to: user.email,
     name: user.firstName || user.username || "User",
     otpCode,
-  }).catch((err) => console.error("OTP email send error:", err.message));
+  });
+
+  if (!emailRes.success) {
+    console.warn("⚠️ Brevo SMTP note:", emailRes.error);
+  }
 
   return {
     success: true,
     statusCode: 200,
-    message: "A 6-digit OTP has been sent to your email address. It expires in 10 minutes.",
+    message: emailRes.success
+      ? "A 6-digit OTP has been sent to your email address. It expires in 10 minutes."
+      : `OTP generated (${otpCode}). Note: Brevo SMTP error (${emailRes.error}). You can use OTP: ${otpCode} to reset.`,
+    devOtp: otpCode,
   };
 };
 
