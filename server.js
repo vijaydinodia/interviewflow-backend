@@ -1,4 +1,4 @@
-// InterviewFlow Backend Server - Flexible Room Code System Active
+// InterviewFlow Backend Server - OTP Email Dispatch Fix Active
 const express = require("express");
 require("dotenv").config();
 const userRoute = require("./routes/userRoute");
@@ -12,6 +12,7 @@ const interviewRequestRoute = require("./routes/interviewRequestRoute");
 const codeExecutionRoute = require("./routes/codeExecutionRoute");
 const bugReportRoute = require("./routes/bugReportRoute");
 const sessionRoute = require("./routes/sessionRoute");
+const questionRoute = require("./routes/questionRoute");
 const dbConnect = require("./config/dbConnection");
 
 const app = express();
@@ -66,6 +67,9 @@ app.use("/api/bugs", bugReportRoute);
 
 app.use("/sessions", sessionRoute);
 app.use("/api/sessions", sessionRoute);
+
+app.use("/questions", questionRoute);
+app.use("/api/questions", questionRoute);
 
 app.use((req, res) => {
   res.status(404).json({

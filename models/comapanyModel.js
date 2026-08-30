@@ -73,6 +73,11 @@ module.exports = (sequelize) => {
         field: "verification_doc",
         allowNull: true,
       },
+      isVerified: {
+        type: DataTypes.BOOLEAN,
+        field: "is_verified",
+        defaultValue: false,
+      },
     },
     {
       tableName: "companies",

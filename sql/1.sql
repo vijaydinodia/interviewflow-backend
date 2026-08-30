@@ -277,6 +277,30 @@ CREATE TABLE IF NOT EXISTS sessions (
   PRIMARY KEY (session_id),
   KEY idx_sessions_user (user_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+-- ----------------------------------------------------------------------------
+-- 12. QUESTIONS TABLE (Practice Coding Questions for Candidates)
+-- Model: questionModel.js -> tableName: 'questions'
+-- ----------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS questions (
+  question_id         CHAR(36) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT (UUID()),
+  frontend_id         VARCHAR(20)  NULL,
+  title               VARCHAR(255) NOT NULL,
+  title_slug          VARCHAR(255) NULL,
+  difficulty          ENUM('Easy','Medium','Hard') NOT NULL DEFAULT 'Medium',
+  description         LONGTEXT     NOT NULL,
+  topic_tags          JSON         NULL,
+  hints               JSON         NULL,
+  examples            JSON         NULL,
+  constraints         TEXT         NULL,
+  code_snippets       JSON         NULL,
+  uploaded_by         CHAR(36)     NULL,
+  createdAt           DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updatedAt           DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (question_id),
+  KEY idx_questions_difficulty (difficulty),
+  KEY idx_questions_uploader (uploaded_by)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 
 -- ============================================================================
 -- ALTER MIGRATION STATEMENTS (Safe updates for existing databases)

@@ -39,9 +39,10 @@ exports.getAllCompanies = async () => {
   const Sequelize = require("sequelize");
   return await db.userModel.findAll({
     where: {
-      role: {
-        [Sequelize.Op.in]: ["admin", "company"],
-      },
+      [Sequelize.Op.or]: [
+        { role: { [Sequelize.Op.in]: ["admin", "company", "Company", "Company Admin"] } },
+        { "$companyProfile.company_id$": { [Sequelize.Op.ne]: null } },
+      ],
     },
     include: [
       {
@@ -49,8 +50,14 @@ exports.getAllCompanies = async () => {
         as: "profile",
         required: false,
       },
+      {
+        model: db.companyModel,
+        as: "companyProfile",
+        required: false,
+      },
     ],
     order: [["createdAt", "DESC"]],
+    subQuery: false,
   });
 };
 

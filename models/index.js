@@ -11,6 +11,7 @@ const meetingLinkModel = require("./meetingLinkModel")(sequelize);
 const codeExecutionModel = require("./codeExecutionModel")(sequelize);
 const bugReportModel = require("./bugReportModel")(sequelize);
 const sessionModel = require("./sessionModel")(sequelize);
+const questionModel = require("./questionModel")(sequelize);
 
 userModel.hasOne(superAdminModel, { foreignKey: "userId", as: "superAdminProfile" });
 superAdminModel.belongsTo(userModel, { foreignKey: "userId", as: "user" });
@@ -48,6 +49,9 @@ bugReportModel.belongsTo(userModel, { foreignKey: "userId", as: "user", constrai
 userModel.hasMany(sessionModel, { foreignKey: "userId", as: "sessions", constraints: false });
 sessionModel.belongsTo(userModel, { foreignKey: "userId", as: "user", constraints: false });
 
+userModel.hasMany(questionModel, { foreignKey: "uploadedBy", as: "uploadedQuestions", constraints: false });
+questionModel.belongsTo(userModel, { foreignKey: "uploadedBy", as: "uploader", constraints: false });
+
 module.exports = {
   sequelize,
   userModel,
@@ -61,4 +65,5 @@ module.exports = {
   codeExecutionModel,
   bugReportModel,
   sessionModel,
+  questionModel,
 };

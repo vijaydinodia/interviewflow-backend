@@ -98,6 +98,35 @@ const dbConnect = async () => {
     } catch (otpMigErr) {
       console.warn("OTP column migration note:", otpMigErr.message);
     }
+
+    // Ensure all companies table columns exist (safe migration)
+    try {
+      const [companyCols] = await db.sequelize.query("SHOW COLUMNS FROM `companies`;");
+      const companyColNames = companyCols.map((c) => c.Field);
+
+      const companyColumnMigrations = [
+        { col: "tagline",          sql: "ALTER TABLE `companies` ADD COLUMN `tagline` VARCHAR(255) NULL;" },
+        { col: "website",          sql: "ALTER TABLE `companies` ADD COLUMN `website` VARCHAR(255) NULL;" },
+        { col: "industry",         sql: "ALTER TABLE `companies` ADD COLUMN `industry` VARCHAR(100) NULL;" },
+        { col: "company_size",     sql: "ALTER TABLE `companies` ADD COLUMN `company_size` VARCHAR(100) NULL;" },
+        { col: "location",         sql: "ALTER TABLE `companies` ADD COLUMN `location` VARCHAR(255) NULL;" },
+        { col: "contact_phone",    sql: "ALTER TABLE `companies` ADD COLUMN `contact_phone` VARCHAR(20) NULL;" },
+        { col: "contact_email",    sql: "ALTER TABLE `companies` ADD COLUMN `contact_email` VARCHAR(255) NULL;" },
+        { col: "logo_url",         sql: "ALTER TABLE `companies` ADD COLUMN `logo_url` TEXT NULL;" },
+        { col: "verification_doc", sql: "ALTER TABLE `companies` ADD COLUMN `verification_doc` VARCHAR(255) NULL;" },
+        { col: "is_verified",      sql: "ALTER TABLE `companies` ADD COLUMN `is_verified` TINYINT(1) DEFAULT 0;" },
+      ];
+
+      for (const { col, sql } of companyColumnMigrations) {
+        if (!companyColNames.includes(col)) {
+          await db.sequelize.query(sql);
+          console.log(`Added missing column '${col}' to companies table.`);
+        }
+      }
+      console.log("companies table schema verified.");
+    } catch (companyMigErr) {
+      console.warn("companies table migration note:", companyMigErr.message);
+    }
   } catch (err) {
     console.error("Database Connection Error:", err.message);
   }

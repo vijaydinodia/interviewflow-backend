@@ -4,7 +4,9 @@ exports.createUser = async (req, res) => {
   try {
     let { username, email, password, firstName, lastName, fullName, role } = req.body || {};
 
-    if (!email || !password) {
+    // Company registrations don't require a password upfront — it's auto-generated
+    const isCompanyRole = role === "company" || role === "admin";
+    if (!email || (!isCompanyRole && !password)) {
       return res.status(400).json({
         success: false,
         message: "Email and password are required.",
@@ -30,7 +32,7 @@ exports.createUser = async (req, res) => {
     const userData = {
       username,
       email,
-      password,
+      password: password || null, // null triggers auto-gen in service for company
       firstName: firstName || username,
       lastName: lastName || "",
       fullName: fullName || "",
@@ -40,13 +42,26 @@ exports.createUser = async (req, res) => {
       title: req.body.title || null,
       department: req.body.department || null,
       currentRole: req.body.currentRole || null,
+      // Company-specific detail fields
+      industry: req.body.industry || null,
+      website: req.body.website || null,
+      location: req.body.location || null,
+      companySize: req.body.companySize || null,
+      contactPhone: req.body.phone || req.body.contactPhone || null,
+      tagline: req.body.tagline || null,
     };
 
     const result = await userService.createUser(userData);
 
+    // Company accounts are pending approval — don't allow login yet
+    const isPendingApproval = targetRole === "admin" && result.isPendingApproval;
+
     return res.status(201).json({
       success: true,
-      message: "User account created successfully",
+      message: isPendingApproval
+        ? "Company registration submitted! Your request has been sent to the Super Admin for approval. Please check your email for further instructions."
+        : "User account created successfully",
+      isPendingApproval: isPendingApproval || false,
       data: {
         userId: result.userId,
         username: result.username,

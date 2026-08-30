@@ -1,4 +1,5 @@
 const codeExecutionRepo = require("../repository/codeExecutionRepo");
+const axios = require("axios");
 
 // Judge0 Language ID map
 const LANGUAGE_IDS = {
@@ -15,6 +16,7 @@ const LANGUAGE_IDS = {
 /**
  * Encode a string to base64 for safe submission to Judge0.
  */
+
 function encodeBase64(str) {
   if (!str) return "";
   return Buffer.from(str, "utf8").toString("base64");
@@ -35,10 +37,14 @@ async function pollSubmission(token, headers, baseUrl, maxAttempts = 10) {
   const checkUrl = `${baseUrl.replace(/\/$/, "")}/submissions/${token}?base64_encoded=true`;
   for (let attempt = 0; attempt < maxAttempts; attempt++) {
     await new Promise((res) => setTimeout(res, 1200));
-    const res = await fetch(checkUrl, { headers });
-    if (res.ok) {
-      const result = await res.json();
-      if (result.status && result.status.id > 2) return result;
+    try {
+      const response = await axios.get(checkUrl, { headers });
+      if (response.status === 200 && response.data) {
+        const result = response.data;
+        if (result.status && result.status.id > 2) return result;
+      }
+    } catch (err) {
+      // Continue polling unless timeout
     }
   }
   throw new Error("Execution timed out waiting for Judge0 response.");
@@ -87,22 +93,9 @@ exports.executeCode = async ({ userId, sourceCode, language, stdin, roomCode }) 
 
   try {
     const submitUrl = `${judge0Url.replace(/\/$/, "")}/submissions?base64_encoded=true&wait=true`;
-    const response = await fetch(submitUrl, {
-      method: "POST",
-      headers,
-      body: JSON.stringify(payload),
-    });
+    const response = await axios.post(submitUrl, payload, { headers });
 
-    if (!response.ok) {
-      const errText = await response.text();
-      return {
-        success: false,
-        statusCode: 502,
-        message: `Judge0 API error (${response.status}): ${errText || response.statusText}`,
-      };
-    }
-
-    let data = await response.json();
+    let data = response.data;
 
     // If token was returned without final status, poll until done
     if (!data.status && data.token) {

@@ -1,6 +1,6 @@
 const express = require("express");
 const router = express.Router();
-const { auth } = require("../middleware/auth");
+const { auth, authorizeRoles } = require("../middleware/auth");
 const {
   getAllSuperAdmins,
   getSuperAdminMe,
@@ -21,28 +21,30 @@ const {
   hardDeleteUser,
 } = require("../controller/superAdminController");
 
+// Protect all superadmin routes with auth and superadmin role check
+const superAdminAuth = [auth, authorizeRoles("superadmin")];
+
 // Super-admin routes for system governance
-router.get("/", auth, getAllSuperAdmins);
-router.get("/me", auth, getSuperAdminMe);
-router.get("/companies", auth, getAllCompanies);
-router.put("/companies/:id/approve", auth, approveCompany);
-router.put("/companies/:id/reject", auth, rejectCompany);
-router.delete("/companies/:id/soft", auth, softDeleteCompany);
-router.delete("/companies/:id/hard", auth, hardDeleteCompany);
+router.get("/", superAdminAuth, getAllSuperAdmins);
+router.get("/me", superAdminAuth, getSuperAdminMe);
+router.get("/companies", superAdminAuth, getAllCompanies);
+router.put("/companies/:id/approve", superAdminAuth, approveCompany);
+router.put("/companies/:id/reject", superAdminAuth, rejectCompany);
+router.delete("/companies/:id/soft", superAdminAuth, softDeleteCompany);
+router.delete("/companies/:id/hard", superAdminAuth, hardDeleteCompany);
 
-router.put("/interviewers/:id/approve", auth, approveInterviewer);
-router.put("/interviewers/:id/reject", auth, rejectInterviewer);
+router.put("/interviewers/:id/approve", superAdminAuth, approveInterviewer);
+router.put("/interviewers/:id/reject", superAdminAuth, rejectInterviewer);
 
-router.get("/users", auth, getAllUsers);
-router.put("/users/:id/restore", auth, restoreUser);
-router.delete("/users/:id/soft", auth, softDeleteUser);
-router.delete("/users/:id/hard", auth, hardDeleteUser);
+router.get("/users", superAdminAuth, getAllUsers);
+router.put("/users/:id/restore", superAdminAuth, restoreUser);
+router.delete("/users/:id/soft", superAdminAuth, softDeleteUser);
+router.delete("/users/:id/hard", superAdminAuth, hardDeleteUser);
 
-router.get("/:id", auth, getSuperAdminById);
+router.get("/:id", superAdminAuth, getSuperAdminById);
 
-router.post("/create", auth, createSuperAdmin);
-router.put("/:id", auth, updateSuperAdmin);
-router.delete("/:id", auth, deleteSuperAdmin);
+router.post("/create", superAdminAuth, createSuperAdmin);
+router.put("/:id", superAdminAuth, updateSuperAdmin);
+router.delete("/:id", superAdminAuth, deleteSuperAdmin);
 
 module.exports = router;
-

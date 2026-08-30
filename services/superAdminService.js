@@ -127,15 +127,29 @@ exports.getAllCompanies = async () => {
 };
 
 exports.approveCompany = async (userId) => {
-  const updated = await userRepo.updateUser(userId, { isActive: true });
-  if (!updated) {
+  const db = require("../models/index");
+  const { sendCompanyApprovalEmail } = require("./emailService");
+
+  const updatedUser = await userRepo.updateUser(userId, { isActive: true });
+  if (!updatedUser) {
     return { success: false, statusCode: 404, message: "Company user not found." };
   }
+
+  let companyProfile = await db.companyModel.findOne({ where: { userId } });
+  if (companyProfile) {
+    await companyProfile.update({ isVerified: true });
+  }
+
+  // Dispatch company approval and access credentials email
+  sendCompanyApprovalEmail(updatedUser, companyProfile || {}).catch((err) => {
+    console.error("Failed to send company approval email:", err.message);
+  });
+
   return {
     success: true,
     statusCode: 200,
-    message: "Company account approved successfully",
-    data: updated,
+    message: "Company account approved & credentials emailed successfully!",
+    data: { user: updatedUser, company: companyProfile },
   };
 };
 
